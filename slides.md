@@ -39,109 +39,6 @@ layout: default
 <Toc maxDepth="1"></Toc>
 
 ---
-transition: fade-out
----
-
-# My Problems with Python
-Dynamically typed
-
-Writing python is very fun
-
-<v-click>
-
-- It is fast to write
-
-</v-click>
-<v-click>
-
-- Fast to run
-
-</v-click>
-<v-click>
-
-- Fast to change
-
-</v-click>
-
-
-<v-click>
-
-But maintaining it? Might be not so much fun.
-
-</v-click>
-
-<v-click>
-
-```py
-def process_records(records):
-    result = {}
-  
-    for record in records:
-        name, age, country = record
-        if country not in result:
-            result[country] = []
-        result[country].append((name, age))
-  
-    return result
-```
-
-</v-click>
-
-<!--
-In the past, in one of my python project I don't use type hints or not using it too much
-When the time comes that I need to do some changes, it can take me a while to understand what goes where and what is of what type, etc
--->
-
----
-transition: fade-out
----
-
-# Type Hints
-PEP-0484[^1]
-
-```py {monaco-diff}
-def process_records(records):
-    result = {}
-  
-    for record in records:
-        name, age, country = record
-        if country not in result:
-            result[country] = []
-        result[country].append((name, age))
-  
-    return result
-~~~
-def process_records(records: List[Tuple[str, int, str]]) \
-        -> Dict[str, List[Tuple[str, int]]]:
-    result = {}
-  
-    for record in records:
-        name, age, country = record
-        if country not in result:
-            result[country] = []
-        result[country].append((name, age))
-  
-    return result
-
-
-```
-
-
-[^1]: [PEP-0484](https://peps.python.org/pep-0484/)
-
-<style>
-.footnotes-sep {
-  @apply mt-20 opacity-10;
-}
-.footnotes {
-  @apply text-sm opacity-75;
-}
-.footnote-backref {
-  display: none;
-}
-</style>
-
----
 layout: two-cols
 ---
 
@@ -176,7 +73,7 @@ class Service,MetricsServer,ColdStorage,ProcessedData storage
 
 Golang Interface
 
-```go {all|1-3|5-12|14|16-18|20-21|22}
+```go {all|1-3|5-9|11|14-15}
 type MetricsRepository interface {
 	Get(start_time int, end_time int) []Metrics
 }
@@ -187,24 +84,13 @@ func (g *coldStorageRepository) Get(start_time int, end_time int) []Metrics
 type metricsServerRepository struct{}
 func (s *metricsServerRepository) Get(start_time int, end_time int) []Metrics
 
-type databaseRepository struct{}
-func (s *databaseRepository) GetUser(id int) []User
-
 func scrapeMetrics(repo MetricsRepository, timeRange TimeRange)
-func main() {
-    coldStorageRepo := coldStorageRepository{}
-    metricsServerRepo := metricsServerRepository{}
-    databaseRepo := databaseRepository{} 
 
-    scrapeMetrics(coldStorageRepo, timeRange); // OK
-    scrapeMetrics(metricsServerRepo, timeRange); // OK
-    scrapeMetrics(databaseRepo, timeRange); // ERROR: cannot use databaseRepository{} as MetricsRepository
+func main() {
+    scrapeMetrics(coldStorageRepository{}, timeRange);
+    scrapeMetrics(metricsServerRepository{}, timeRange);
 }
 ```
-
-<!--
-Golang can infer that coldStorageRepo and metricsServerRepo implements CloudStorageRepository interface while sqlRepository doesn't
--->
 
 ---
 layout: two-cols
@@ -262,7 +148,7 @@ level: 2
 ---
 
 # Abstract Base Class
-PEP-3119 [^1]
+PEP-3119
 
 
 ```py {all|4-7,17-20|5-7|9,13|all}
@@ -304,22 +190,6 @@ class MetricsService:
 
 </v-click>
 
-
-[^1]: [ABC](https://docs.python.org/3/library/abc.html)
-
-<style>
-.footnotes-sep {
-  @apply mt-20 opacity-10;
-}
-.footnotes {
-  @apply text-sm opacity-75;
-}
-.footnote-backref {
-  display: none;
-}
-</style>
-
-
 ---
 layout: two-cols
 transition: zoom
@@ -327,20 +197,20 @@ level: 2
 ---
 
 # Protocol
-PEP-0544 [^1]
+PEP-0544
 
-```py {all|8-9,12-13|all}
+```py {all|3-5|8-9,12-13|all}
 from typing import Protocol
 
 class RepositoryProtocol(Protocol):
     def get_data(self, time_range: TimeRange) -> List[Dict]:
         ...
 
-class MetricsServerRepository(RepositoryProtocol):
+class MetricsServerRepository():
     def get_data(self, time_range: TimeRange) -> List[Dict]:
         return [{'data': 'from metrics server'}]
 
-class ColdStorageRepository(RepositoryProtocol):
+class ColdStorageRepository():
     def get_data(self, time_range: TimeRange) -> List[Dict]:
         return [{'data': 'from cold storage'}]
 
@@ -356,7 +226,7 @@ class MetricsService:
 
 - <span style="color: lightgreen">Flexibility: A class can satisfy a Protocol merely by providing the necessary methods or attributes, (structural subtyping / implicit)</span>
 - <span style="color: lightgreen">Duck typing - "If it looks like a duck and quacks like a duck, then it's a duck"</span>
-- <span style="color: lightgreen">Offers static type checking (and LSP's nice feature) without runtime overhead</span>
+- <span style="color: lightgreen">Offers static type checking without runtime overhead</span>
 
 <v-click>
 <br>
@@ -364,21 +234,6 @@ class MetricsService:
 - <span style="color: salmon">Lack of early error detection - without a type-checker tool, incorrect implementation of a Protocol may run without errors until a problem happens at runtime</span>
 
 </v-click>
-
-[^1]: [PEP-0544](https://peps.python.org/pep-0544/)
-
-<style>
-.footnotes-sep {
-  @apply mt-20 opacity-10;
-}
-.footnotes {
-  @apply text-sm opacity-75;
-}
-.footnote-backref {
-  display: none;
-}
-</style>
-
 
 ---
 transition: fade-out
@@ -391,12 +246,6 @@ transition: fade-out
 | **Typing**         | Nominal or Explicit        | Structural or Implicit  |
 | **Flexibility**    | Less (Must explicitly inherit)| More (Only need to implement defined methods)  |
 | **Error Detection**| Earlier (instantiation time)   | Later (mostly at runtime, or static-type checker)  |
-| **Use Case**       | When the contract is more important | When you just care about some behaviors  |
-
-<br>
-
-- ABCs and Protocols streamline code and facilitate collaboration by setting clear expectations.
-- Protocols offer valuable flexibility when you need a class to comply with multiple ABCs or only require certain behaviors, not full ABC
 
 ---
 layout: center
