@@ -1,6 +1,6 @@
 ---
 theme: seriph
-background: images/cover1.jpg
+background: /images/cover1.jpg
 class: text-center
 highlighter: shiki
 lineNumbers: false
@@ -22,7 +22,7 @@ Novian Deny
 </div>-->
 
 <div class="abs-bl mx-14 my-12 flex">
-  <img src="images/pyjogjalogo.jpg" class="h-10">
+  <img src="/images/pyjogjalogo.jpg" class="h-10">
   <div class="ml-3 flex flex-col text-left">
     <div>Python Jogja</div>
     <div class="text-xs opacity-50">Dec. 16th, 2023</div>
