@@ -42,8 +42,8 @@ layout: default
 transition: fade-out
 ---
 
-# Background
-Python Coding
+# My Problems with Python
+Dynamically typed
 
 Writing python is very fun
 
@@ -97,7 +97,7 @@ transition: fade-out
 ---
 
 # Type Hints
-PEP-0484 [^1]
+PEP-0484[^1]
 
 ```py {monaco-diff}
 def process_records(records):
@@ -129,6 +129,18 @@ def process_records(records: List[Tuple[str, int, str]]) \
 
 [^1]: [PEP-0484](https://peps.python.org/pep-0484/)
 
+<style>
+.footnotes-sep {
+  @apply mt-20 opacity-10;
+}
+.footnotes {
+  @apply text-sm opacity-75;
+}
+.footnote-backref {
+  display: none;
+}
+</style>
+
 ---
 layout: two-cols
 ---
@@ -157,45 +169,6 @@ classDef storage fill:#fc0,stroke:#333,stroke-width:2px;
 class Input,Output default
 class Service,MetricsServer,ColdStorage,ProcessedData storage
 ```
----
-layout: two-cols
-transition: slide-up
-level: 2
----
-
-# First Approach
-Naive Approach
-
-```py
-class MetricsServerRepository:
-    @staticmethod
-    def get_data(time_range: str) -> List[Dict]:
-        return []
-
-class ColdStorageRepository:
-    @staticmethod
-    def get_data(time_range: str) -> List[Dict]:
-        return []
-
-class MetricsService:
-    def get_data(self, time_range: str) -> List[Dict]:
-        if 'old' in time_range:
-            data = ColdStorageRepository.get_data(time_range)
-        else:
-            data = MetricsServerRepository.get_data(time_range)
-	
-	return some_processing(data)
-```
-
-::right::
-
-<v-click>
-
-<br><br>
-- `MetricsService` is directly dependent on specific repository classes
-- If new criteria is added or repository is changed, we need to modify the MetricsService code
-
-</v-click>
 
 ---
 
@@ -203,7 +176,7 @@ class MetricsService:
 
 Golang Interface
 
-```go {all|1-3|5-12|14|17-18|20-21}
+```go {all|1-3|5-12|14|16-18|20-21|22}
 type MetricsRepository interface {
 	Get(start_time int, end_time int) []Metrics
 }
@@ -217,54 +190,219 @@ func (s *metricsServerRepository) Get(start_time int, end_time int) []Metrics
 type databaseRepository struct{}
 func (s *databaseRepository) GetUser(id int) []User
 
-type Scraper struct { repo MetricsRepository } // TODO: change to func not struct
-
+func scrapeMetrics(repo MetricsRepository, timeRange TimeRange)
 func main() {
-	coldStorageRepo := Scraper{&coldStorageRepository{}}
-	metricsServerRepo := Scraper{&metricsServerRepository{}}
+    coldStorageRepo := coldStorageRepository{}
+    metricsServerRepo := metricsServerRepository{}
+    databaseRepo := databaseRepository{} 
 
-	// ERROR: cannot use &databaseRepository{} as MetricsRepository
-	databaseRepo := Scraper{&databaseRepository{}} 
+    scrapeMetrics(coldStorageRepo, timeRange); // OK
+    scrapeMetrics(metricsServerRepo, timeRange); // OK
+    scrapeMetrics(databaseRepo, timeRange); // ERROR: cannot use databaseRepository{} as MetricsRepository
 }
 ```
 
 <!--
-Golang can infer that gcsRepository and s3Repository implements CloudStorageRepository interface while sqlRepository doesn't
+Golang can infer that coldStorageRepo and metricsServerRepo implements CloudStorageRepository interface while sqlRepository doesn't
 -->
 
 ---
-transition: fade-out
+layout: two-cols
+transition: slide-up
+level: 2
 ---
 
-# Abstract Base Class (ABC)
+# First Approach
+No special treatment
+
+```py
+class MetricsServerRepository:
+    @staticmethod
+    def get_data(time_range: TimeRange) -> List[Dict]:
+        return []
+
+class ColdStorageRepository:
+    @staticmethod
+    def get_data(time_range: TimeRange) -> List[Dict]:
+        return []
+
+class MetricsService:
+    def get_data(self, time_range: TimeRange) -> List[Dict]:
+        if time_range.is_old():
+            data = ColdStorageRepository.get_data(time_range)
+        else:
+            data = MetricsServerRepository.get_data(time_range)
+	
+	return some_processing(data)
+```
+
+::right::
+
+<v-click>
+
+<br><br>
+
+- <span style="color: lightgreen">Pretty intuitive & straightforward</span>
+
+</v-click>
+
+<v-click>
+
+<br>
+
+- <span style="color: salmon">`MetricsService` is directly dependent on specific repository classes</span>
+- <span style="color: salmon">If new criteria is added or repository is changed, we need to modify the MetricsService code</span>
+
+</v-click>
+
+---
+layout: two-cols
+transition: fade
+level: 2
+---
+
+# Abstract Base Class
 PEP-3119 [^1]
 
-- First introduced in PEP 3119 (Python 3.0) [^2]
-- runtime check
+
+```py {all|4-7,17-20|5-7|9,13|all}
+from typing import List, Dict
+from abc import ABC, abstractmethod
+
+class Repository(ABC):
+    @abstractmethod
+    def get_data(self, time_range: TimeRange) -> List[Dict]:
+        pass
+
+class MetricsServerRepository(Repository):
+    def get_data(self, time_range: TimeRange) -> List[Dict]:
+        return [{'data': 'from metrics server'}]
+
+class ColdStorageRepository(Repository):
+    def get_data(self, time_range: TimeRange) -> List[Dict]:
+        return [{'data': 'from cold storage'}]
+
+class MetricsService:
+    def get_data(self, repository: Repository, time_range: TimeRange) -> List[Dict]:
+        data = repository.get_data(time_range)
+        return data
+```
+
+::right::
+
+<br><br>
+
+- <span style="color: lightgreen">MetricsService is no longer directly dependent on specific repository classes</span>
+- <span style="color: lightgreen">Clear and Enforced Contract: it is clear which methods a subclass should implement (nominal subtyping / explicit)</span>
+- <span style="color: lightgreen">Error Detection: Python raises a `TypeError` at instantiation time</span>
+
+<v-click>
+
+<br>
+
+- <span style="color: salmon">Inflexibility: To make a class behave as an ABC, it must explicitly inherit from the ABC</span>
+
+</v-click>
+
 
 [^1]: [ABC](https://docs.python.org/3/library/abc.html)
-[^2]: [PEP-3119](https://peps.python.org/pep-3119/)
+
+<style>
+.footnotes-sep {
+  @apply mt-20 opacity-10;
+}
+.footnotes {
+  @apply text-sm opacity-75;
+}
+.footnote-backref {
+  display: none;
+}
+</style>
+
 
 ---
-transition: fade-out
+layout: two-cols
+transition: zoom
+level: 2
 ---
 
 # Protocol
-More Pythonic Way [^1]
+PEP-0544 [^1]
+
+```py {all|8-9,12-13|all}
+from typing import Protocol
+
+class RepositoryProtocol(Protocol):
+    def get_data(self, time_range: TimeRange) -> List[Dict]:
+        ...
+
+class MetricsServerRepository(RepositoryProtocol):
+    def get_data(self, time_range: TimeRange) -> List[Dict]:
+        return [{'data': 'from metrics server'}]
+
+class ColdStorageRepository(RepositoryProtocol):
+    def get_data(self, time_range: TimeRange) -> List[Dict]:
+        return [{'data': 'from cold storage'}]
+
+class MetricsService:
+    def get_data(self, repository: RepositoryProtocol, time_range: TimeRange) -> List[Dict]:
+        data = repository.get_data(time_range)
+        return data
+```
+
+::right::
+
+<br><br>
+
+- <span style="color: lightgreen">Flexibility: A class can satisfy a Protocol merely by providing the necessary methods or attributes, (structural subtyping / implicit)</span>
+- <span style="color: lightgreen">Duck typing - "If it looks like a duck and quacks like a duck, then it's a duck"</span>
+- <span style="color: lightgreen">Offers static type checking (and LSP's nice feature) without runtime overhead</span>
+
+<v-click>
+<br>
+
+- <span style="color: salmon">Lack of early error detection - without a type-checker tool, incorrect implementation of a Protocol may run without errors until a problem happens at runtime</span>
+
+</v-click>
 
 [^1]: [PEP-0544](https://peps.python.org/pep-0544/)
+
+<style>
+.footnotes-sep {
+  @apply mt-20 opacity-10;
+}
+.footnotes {
+  @apply text-sm opacity-75;
+}
+.footnote-backref {
+  display: none;
+}
+</style>
+
 
 ---
 transition: fade-out
 ---
 
-# My Use Case
+# ABC vs Protocol
+
+|                     | **Abstract Base Classes**  | **Protocol**  |
+|---------------------|----------------------------|---------------|
+| **Typing**         | Nominal or Explicit        | Structural or Implicit  |
+| **Flexibility**    | Less (Must explicitly inherit)| More (Only need to implement defined methods)  |
+| **Error Detection**| Earlier (instantiation time)   | Later (mostly at runtime, or static-type checker)  |
+| **Use Case**       | When the contract is more important | When you just care about some behaviors  |
+
+<br>
+
+- ABCs and Protocols streamline code and facilitate collaboration by setting clear expectations.
+- Protocols offer valuable flexibility when you need a class to comply with multiple ABCs or only require certain behaviors, not full ABC
 
 ---
 layout: center
 class: text-center
 ---
 
-# Learn More
+# EOFError
 
-[Documentations](https://sli.dev) · [GitHub](https://github.com/slidevjs/slidev) · [Showcases](https://sli.dev/showcases.html)
+Thanks for your time and attention! #HappyCoding
