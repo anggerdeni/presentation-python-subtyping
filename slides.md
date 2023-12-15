@@ -68,31 +68,6 @@ class Service,MetricsServer,ColdStorage,ProcessedData storage
 ```
 
 ---
-
-# Inspiration
-
-Golang Interface
-
-```go {all|1-3|5-9|11|14-15}
-type MetricsRepository interface {
-	Get(start_time int, end_time int) []Metrics
-}
-
-type coldStorageRepository struct{}
-func (g *coldStorageRepository) Get(start_time int, end_time int) []Metrics
-
-type metricsServerRepository struct{}
-func (s *metricsServerRepository) Get(start_time int, end_time int) []Metrics
-
-func scrapeMetrics(repo MetricsRepository, timeRange TimeRange)
-
-func main() {
-    scrapeMetrics(coldStorageRepository{}, timeRange);
-    scrapeMetrics(metricsServerRepository{}, timeRange);
-}
-```
-
----
 layout: two-cols
 transition: slide-up
 level: 2
