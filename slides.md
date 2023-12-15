@@ -85,7 +85,7 @@ class ColdStorageRepository:
     def get_data(time_range: TimeRange) -> List[Metrics]:
         return [...]
 
-def collect_and_process_metrics(self, time_range: TimeRange) -> List[Metrics]:
+def collect_and_process_metrics(time_range: TimeRange) -> List[Metrics]:
     if time_range.is_old():
         data = coldStorage.get_data(time_range)
     else:
@@ -153,7 +153,7 @@ collect_and_process_metrics(ColdStorageRepository(), time_range)
 
 - <span style="color: lightgreen">`collect_and_process_metrics` is no longer directly dependent specific repository classes</span>
 - <span style="color: lightgreen">Clear and Enforced Contract: it is clear which methods a subclass should implement (nominal subtyping / explicit)</span>
-- <span style="color: lightgreen">Error Detection: Python raises a `TypeError` at instantiation time</span>
+- <span style="color: lightgreen">Python raises a `TypeError` at instantiation time if something's wrong</span>
 
 <v-click>
 
@@ -187,7 +187,7 @@ class ColdStorageRepository():
     def get_data(self, time_range: TimeRange) -> List[Metrics]:
         return [...]
 
-def collect_and_process_metrics(repository: RepositoryProtocol, time_range: TimeRange) -> List[Metrics]:
+def collect_and_process_metrics(repository: Repository, time_range: TimeRange) -> List[Metrics]:
     data = repository.get_data(time_range)
     return some_processing(data)
 ```
@@ -198,12 +198,12 @@ def collect_and_process_metrics(repository: RepositoryProtocol, time_range: Time
 
 - <span style="color: lightgreen">Flexibility: A class can satisfy a Protocol merely by providing the necessary methods or attributes, (structural subtyping / implicit)</span>
 - <span style="color: lightgreen">Duck typing - "If it looks like a duck and quacks like a duck, then it's a duck"</span>
-- <span style="color: lightgreen">Offers static type checking without runtime overhead</span>
+- <span style="color: lightgreen">Static type checkers are already smart enough to detect error</span>
 
 <v-click>
 <br>
 
-- <span style="color: salmon">Lack of early error detection - without a type-checker tool, incorrect implementation of a Protocol may run without errors until a problem happens at runtime</span>
+- <span style="color: salmon">No runtime checks, without a type-checker tool, incorrect implementation of a Protocol may run without errors until a problem happens at runtime</span>
 
 </v-click>
 
