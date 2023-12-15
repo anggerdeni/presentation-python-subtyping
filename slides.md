@@ -78,23 +78,20 @@ No special treatment
 
 ```py
 class MetricsServerRepository:
-    @staticmethod
-    def get_data(time_range: TimeRange) -> List[Dict]:
-        return []
+    def get_data(time_range: TimeRange) -> List[Metrics]:
+        return [...]
 
 class ColdStorageRepository:
-    @staticmethod
-    def get_data(time_range: TimeRange) -> List[Dict]:
-        return []
+    def get_data(time_range: TimeRange) -> List[Metrics]:
+        return [...]
 
-class MetricsService:
-    def get_data(self, time_range: TimeRange) -> List[Dict]:
-        if time_range.is_old():
-            data = ColdStorageRepository.get_data(time_range)
-        else:
-            data = MetricsServerRepository.get_data(time_range)
-	
-	return some_processing(data)
+def collect_and_process_metrics(self, time_range: TimeRange) -> List[Metrics]:
+    if time_range.is_old():
+        data = coldStorage.get_data(time_range)
+    else:
+        data = metricsServer.get_data(time_range)
+    
+    return some_processing(data)
 ```
 
 ::right::
@@ -111,8 +108,8 @@ class MetricsService:
 
 <br>
 
-- <span style="color: salmon">`MetricsService` is directly dependent on specific repository classes</span>
-- <span style="color: salmon">If new criteria is added or repository is changed, we need to modify the MetricsService code</span>
+- <span style="color: salmon">`collect_and_process_metrics` is directly dependent on repository classes</span>
+- <span style="color: salmon">If new criteria is added or repository is changed, we need to modify the `collect_and_process_metrics` code</span>
 
 </v-click>
 
@@ -126,34 +123,35 @@ level: 2
 PEP-3119
 
 
-```py {all|4-7,17-20|5-7|9,13|all}
+```py {all|4-7|5-7|9-11,13-15|17-19|21|all}
 from typing import List, Dict
 from abc import ABC, abstractmethod
 
 class Repository(ABC):
     @abstractmethod
-    def get_data(self, time_range: TimeRange) -> List[Dict]:
+    def get_data(self, time_range: TimeRange) -> List[Metrics]:
         pass
 
 class MetricsServerRepository(Repository):
-    def get_data(self, time_range: TimeRange) -> List[Dict]:
-        return [{'data': 'from metrics server'}]
+    def get_data(self, time_range: TimeRange) -> List[Metrics]:
+        return [...]
 
 class ColdStorageRepository(Repository):
-    def get_data(self, time_range: TimeRange) -> List[Dict]:
-        return [{'data': 'from cold storage'}]
+    def get_data(self, time_range: TimeRange) -> List[Metrics]:
+        return [...]
 
-class MetricsService:
-    def get_data(self, repository: Repository, time_range: TimeRange) -> List[Dict]:
-        data = repository.get_data(time_range)
-        return data
+def collect_and_process_metrics(repository: Repository, time_range: TimeRange) -> List[Metrics]:
+    data = repository.get_data(time_range)
+    return some_processing(data)
+
+collect_and_process_metrics(ColdStorageRepository(), time_range)
 ```
 
 ::right::
 
 <br><br>
 
-- <span style="color: lightgreen">MetricsService is no longer directly dependent on specific repository classes</span>
+- <span style="color: lightgreen">`collect_and_process_metrics` is no longer directly dependent specific repository classes</span>
 - <span style="color: lightgreen">Clear and Enforced Contract: it is clear which methods a subclass should implement (nominal subtyping / explicit)</span>
 - <span style="color: lightgreen">Error Detection: Python raises a `TypeError` at instantiation time</span>
 
@@ -174,25 +172,24 @@ level: 2
 # Protocol
 PEP-0544
 
-```py {all|3-5|8-9,12-13|all}
+```py {all|3-5|7-9,11-13|all}
 from typing import Protocol
 
-class RepositoryProtocol(Protocol):
-    def get_data(self, time_range: TimeRange) -> List[Dict]:
+class Repository(Protocol):
+    def get_data(self, time_range: TimeRange) -> List[Metrics]:
         ...
 
 class MetricsServerRepository():
-    def get_data(self, time_range: TimeRange) -> List[Dict]:
-        return [{'data': 'from metrics server'}]
+    def get_data(self, time_range: TimeRange) -> List[Metrics]:
+        return [...]
 
 class ColdStorageRepository():
-    def get_data(self, time_range: TimeRange) -> List[Dict]:
-        return [{'data': 'from cold storage'}]
+    def get_data(self, time_range: TimeRange) -> List[Metrics]:
+        return [...]
 
-class MetricsService:
-    def get_data(self, repository: RepositoryProtocol, time_range: TimeRange) -> List[Dict]:
-        data = repository.get_data(time_range)
-        return data
+def collect_and_process_metrics(repository: RepositoryProtocol, time_range: TimeRange) -> List[Metrics]:
+    data = repository.get_data(time_range)
+    return some_processing(data)
 ```
 
 ::right::
